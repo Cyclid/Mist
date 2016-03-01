@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.name        = 'mist'
+  s.name        = 'mist-server'
   s.version     = '0.1.0'
   s.license     = 'Apache-2.0'
   s.summary     = 'Mist is not a Cloud'
