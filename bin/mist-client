@@ -49,7 +49,6 @@ abort "You must specify one of -c (--create) or -D (--destroy)" unless options.k
 # Get the server pool that is shared amongst the client threads
 pool = Mist::Pool.get
 pool.add('r1')
-Mist.logger.debug pool.inspect
 
 # Create a client & do the RPC
 client = Mist::Client.new(pool)
