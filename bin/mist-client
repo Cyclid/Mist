@@ -4,7 +4,7 @@ require 'optparse'
 require 'logger'
 require 'msgpack/rpc'
 
-class MistClient
+class Pool
   def initialize(mutex)
     @mutex = mutex
 
@@ -12,21 +12,20 @@ class MistClient
     @busy = []
   end
 
-  def add_server(server)
+  def add(server)
     @mutex.synchronize {
       @available << server
     }
   end
 
-  def remove_server(server)
+  def remove(server)
     @mutex.synchronize {
       @available.delete server if @available.include? server
       @busy.delete server if @busy.include? server
     }
   end
 
-  def call(method, args = {})
-    Mist.logger.debug "args=#{args}"
+  def acquire
     server = nil
     # Get the first available client; loop until one becomes available
     loop do
@@ -38,17 +37,34 @@ class MistClient
       sleep 1
     end
 
-    Mist.logger.debug "got server #{server}"
+    return server
+  end
 
-    client = MessagePack::RPC::Client.new(server, 18800)
-    result = client.call(method, args)
-
+  def release(server)
     # Put the server back in the available list; if the server was removed
     # while we were using it, don't put it back.
     @mutex.synchronize {
       @available.push server if @busy.include? server
       @busy.delete server if @busy.include? server
     }
+  end
+end
+
+class MistClient
+  def initialize(pool)
+    @pool = pool
+  end
+
+  def call(method, args = {})
+    Mist.logger.debug "args=#{args}"
+
+    server = args[:server] || @pool.acquire
+    Mist.logger.debug "got server #{server}"
+
+    client = MessagePack::RPC::Client.new(server, 18800)
+    result = client.call(method, args)
+
+    @pool.release server
 
     return result
   end
@@ -78,8 +94,8 @@ OptionParser.new do |opts|
     options[:name] = name
   end
 
-  opts.on('-h', '--host HOSTNAME', 'Hostname of the server') do |hostname|
-    options[:hostname] = hostname
+  opts.on('-s', '--server SERVER', 'Hostname of the server') do |server|
+    options[:server] = server
   end
 
   opts.on('-d', '--distro DISTRO', 'Distribution name') do |distro|
@@ -93,9 +109,13 @@ end.parse!
 
 abort "You must specify one of -c (--create) or -D (--destroy)" unless options.key? :action
 
+# Create a new pool that can be shared amongst the client threads
 mutex = Mutex.new
-client = MistClient.new(mutex)
-client.add_server('r1')
+pool = Pool.new(mutex)
+pool.add('r1')
+
+# Create a client & do the RPC
+client = MistClient.new(pool)
 
 result = client.call(options[:action].to_sym, options)
 Mist.logger.debug "result=#{result}"
