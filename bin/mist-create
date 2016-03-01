@@ -1,13 +1,52 @@
 #!/usr/bin/env ruby2.0
 $LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 
+require 'optparse'
 require 'mist'
 
-name='test'
-distro='ubuntu'
-release='trusty'
+options = {distro: 'ubuntu', release: 'trusty'}
+OptionParser.new do |opts|
+  opts.on('-n', '--name', 'Container name') do |name|
+    options[:name] = name
+  end
 
-container = Mist::LXCContainer.new(name, distro, release)
+  opts.on('-d', '--distro', 'Distribution name') do |distro|
+    options[:distro] = distro
+  end
+
+  opts.on('-r', '--release', 'Distribution release') do |release|
+    options[:release] = release
+  end
+end.parse!
+
+name = options[:name]
+if name.nil?
+  # Create a suitable name
+  filename = File.join(ENV['HOME'], '.mist', 'lxc-sequence')
+
+  # Create an empty sequence file if one doesn't exist
+  File.new(filename, 'w') unless File.exists?(filename)
+
+  # Read the last sequence, increment it & write it back again
+  sequence_file = File.new(filename, 'r+')
+  begin
+    sequence = sequence_file.read.to_i
+    Mist.logger.debug "sequence=#{sequence}"
+  rescue
+    sequence = 1
+  end
+  name = "mist#{sequence}"
+
+  sequence += 1
+  sequence_file.rewind
+  sequence_file.write(sequence)
+  sequence_file.close
+end
+
+Mist.logger.debug "name=#{name}"
+
+# Create a container by cloning from the template
+container = Mist::LXCContainer.new(name, options[:distro], options[:release])
 begin
   container.create
   Mist.logger.info "Container #{name} created with address #{container.ips.first}"
