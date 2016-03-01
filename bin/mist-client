@@ -1,8 +1,7 @@
 #!/usr/bin/env ruby2.0
-$LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 
-require 'mist'
 require 'optparse'
+require 'logger'
 require 'msgpack/rpc'
 
 class MistClient
@@ -55,6 +54,19 @@ class MistClient
   end
 end
 
+# Provide our own logger
+module Mist
+  class << self
+    attr_accessor :logger
+
+    begin
+      Mist.logger = Logger.new(STDERR)
+    rescue StandardError => ex
+      abort "Failed to initialize: #{ex}"
+    end
+  end
+end
+
 options = {distro: 'ubuntu', release: 'trusty'}
 OptionParser.new do |opts|
   opts.on('-c', '--create', 'Create a container') do |create|
@@ -64,6 +76,10 @@ OptionParser.new do |opts|
   opts.on('-D', '--destroy NAME', 'Destroy a container') do |name|
     options[:action] = 'destroy'
     options[:name] = name
+  end
+
+  opts.on('-h', '--host HOSTNAME', 'Hostname of the server') do |hostname|
+    options[:hostname] = hostname
   end
 
   opts.on('-d', '--distro DISTRO', 'Distribution name') do |distro|
@@ -79,7 +95,7 @@ abort "You must specify one of -c (--create) or -D (--destroy)" unless options.k
 
 mutex = Mutex.new
 client = MistClient.new(mutex)
-client.add_server('127.0.0.1')
+client.add_server('r1')
 
 result = client.call(options[:action].to_sym, options)
 Mist.logger.debug "result=#{result}"
