@@ -1,74 +1,8 @@
-#!/usr/bin/env ruby2.0
+#!/usr/bin/env ruby
+$LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 
 require 'optparse'
 require 'logger'
-require 'msgpack/rpc'
-
-class Pool
-  def initialize(mutex)
-    @mutex = mutex
-
-    @available = []
-    @busy = []
-  end
-
-  def add(server)
-    @mutex.synchronize {
-      @available << server
-    }
-  end
-
-  def remove(server)
-    @mutex.synchronize {
-      @available.delete server if @available.include? server
-      @busy.delete server if @busy.include? server
-    }
-  end
-
-  def acquire
-    server = nil
-    # Get the first available client; loop until one becomes available
-    loop do
-      @mutex.synchronize {
-        server = @available.pop unless @available.empty?
-        @busy.push server unless server.nil? 
-      }
-      break if server
-      sleep 1
-    end
-
-    return server
-  end
-
-  def release(server)
-    # Put the server back in the available list; if the server was removed
-    # while we were using it, don't put it back.
-    @mutex.synchronize {
-      @available.push server if @busy.include? server
-      @busy.delete server if @busy.include? server
-    }
-  end
-end
-
-class MistClient
-  def initialize(pool)
-    @pool = pool
-  end
-
-  def call(method, args = {})
-    Mist.logger.debug "args=#{args}"
-
-    server = args[:server] || @pool.acquire
-    Mist.logger.debug "got server #{server}"
-
-    client = MessagePack::RPC::Client.new(server, 18800)
-    result = client.call(method, args)
-
-    @pool.release server
-
-    return result
-  end
-end
 
 # Provide our own logger
 module Mist
@@ -82,6 +16,9 @@ module Mist
     end
   end
 end
+
+require 'mist/pool'
+require 'mist/client'
 
 options = {distro: 'ubuntu', release: 'trusty'}
 OptionParser.new do |opts|
@@ -109,13 +46,13 @@ end.parse!
 
 abort "You must specify one of -c (--create) or -D (--destroy)" unless options.key? :action
 
-# Create a new pool that can be shared amongst the client threads
-mutex = Mutex.new
-pool = Pool.new(mutex)
+# Get the server pool that is shared amongst the client threads
+pool = Mist::Pool.get
 pool.add('r1')
+Mist.logger.debug pool.inspect
 
 # Create a client & do the RPC
-client = MistClient.new(pool)
+client = Mist::Client.new(pool)
 
 result = client.call(options[:action].to_sym, options)
 Mist.logger.debug "result=#{result}"

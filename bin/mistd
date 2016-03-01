@@ -28,7 +28,7 @@ class MistHandler
       return {status: false, client: hostname, message: "create request failed: #{ex}"}
     end
 
-    return {status: true, client: hostname, message: "created new container #{name}", ip: ip}
+    return {status: true, client: hostname, message: 'created new container', name: name, ip: ip}
   end
 
   def destroy(args)
@@ -45,7 +45,7 @@ class MistHandler
       return {status: false, message: "destroy request failed: #{ex}"}
     end
 
-    return {status: true, message: "destroyed container #{name}"}
+    return {status: true, message: 'destroyed container', name: name}
   end
 
   private
