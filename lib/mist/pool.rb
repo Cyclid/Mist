@@ -1,7 +1,25 @@
+require 'json'
+
 module Mist
   class Pool
     def self.get
-      @@pool ||= Pool.new(Mutex.new)
+      @@pool ||= nil
+      if @@pool.nil?
+        @@pool = Pool.new(Mutex.new)
+        begin
+          config_file = ENV['MIST_CONFIG'] || File.join(%w(/ etc mist config))
+          config = JSON.parse(File.read(config_file))
+
+          raise 'no nodes defined' unless config.key? 'servers'
+
+          config['servers'].each do |server|
+            @@pool.add(server)
+          end
+        rescue StandardError => ex
+          Mist.logger.error "couldn't load config file: #{ex}"
+        end
+      end
+      @@pool
     end
 
     def initialize(mutex)

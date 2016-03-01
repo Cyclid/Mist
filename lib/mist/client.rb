@@ -8,8 +8,6 @@ module Mist
     end
 
     def call(method, args = {})
-      Mist.logger.debug "args=#{args}"
-
       server = args[:server] || @pool.acquire
       Mist.logger.debug "got server #{server}"
 
