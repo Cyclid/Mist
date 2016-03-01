@@ -25,10 +25,10 @@ class MistHandler
       ip = container.ips.first
     rescue StandardError => ex
       Mist.logger.error "Create request failed: #{ex}"
-      return {status: false, client: hostname, message: "create request failed: #{ex}"}
+      return {status: false, server: hostname, message: "create request failed: #{ex}"}
     end
 
-    return {status: true, client: hostname, message: 'created new container', name: name, ip: ip}
+    return {status: true, server: hostname, message: 'created new container', name: name, ip: ip}
   end
 
   def destroy(args)
