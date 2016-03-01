@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env ruby2.0
 $LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 
 require 'mist'
@@ -6,15 +6,22 @@ require 'msgpack/rpc'
 require 'socket'
 
 class MistHandler
-  def create(distro, release)
-    hostname = Socket.hostname
-    name = 'dunno'
+  def create(args)
+    Mist.logger.debug "create: args=#{args}"
+
+    hostname = Socket.gethostname
+
+    distro = args['distro'] || 'ubuntu'
+    release = args['release'] || 'trusty'
+    name = args['name'] || create_name
 
     begin
       Mist.logger.info "creating container #{name} with #{distro}-#{release}"
-      raise 'derp'
 
       container = Mist::LXCContainer.new(name, distro, release)
+      raise "container with the name #{name} already exists!" if container.exists?
+
+      container.create
       ip = container.ips.first
     rescue StandardError => ex
       Mist.logger.error "Create request failed: #{ex}"
@@ -24,11 +31,13 @@ class MistHandler
     return {status: true, client: hostname, message: "created new container #{name}", ip: ip}
   end
 
-  def destroy(name)
-    begin
-      raise 'derp'
+  def destroy(args)
+    Mist.logger.debug "destroy: args=#{args}"
 
+    begin
+      name = args['name']
       container = Mist::LXCContainer.new(name)
+
       Mist.logger.info "destroying #{name}"
       container.destroy
     rescue StandardError => ex
@@ -37,6 +46,33 @@ class MistHandler
     end
 
     return {status: true, message: "destroyed container #{name}"}
+  end
+
+  private
+
+  def create_name
+    # Create a suitable name
+    filename = File.join(ENV['HOME'], '.mist', 'lxc-sequence')
+
+    # Create an empty sequence file if one doesn't exist
+    File.new(filename, 'w') unless File.exists?(filename)
+
+    # Read the last sequence, increment it & write it back again
+    sequence_file = File.new(filename, 'r+')
+    begin
+      sequence = sequence_file.read.to_i
+      Mist.logger.debug "sequence=#{sequence}"
+    rescue
+      sequence = 1
+    end
+    name = "mist#{sequence}"
+
+    sequence += 1
+    sequence_file.rewind
+    sequence_file.write(sequence)
+    sequence_file.close
+
+    return name
   end
 end
 
@@ -51,7 +87,11 @@ class MistServer
   end
 end
 
-Process.deamon(false, false)
+# Provide our own file logger
+Mist.logger = Logger.new(File.join(%w(/ var log mist.log)))
+
+# Become a daemon & start processing requests
+Process.daemon(false, false)
 
 begin
   Mist.logger.info 'Mist server starting'

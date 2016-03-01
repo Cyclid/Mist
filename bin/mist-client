@@ -2,6 +2,7 @@
 $LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 
 require 'mist'
+require 'optparse'
 require 'msgpack/rpc'
 
 class MistClient
@@ -25,7 +26,8 @@ class MistClient
     }
   end
 
-  def call(method, *args)
+  def call(method, args = {})
+    Mist.logger.debug "args=#{args}"
     server = nil
     # Get the first available client; loop until one becomes available
     loop do
@@ -44,7 +46,7 @@ class MistClient
 
     # Put the server back in the available list; if the server was removed
     # while we were using it, don't put it back.
-    @mutex.syncronize {
+    @mutex.synchronize {
       @available.push server if @busy.include? server
       @busy.delete server if @busy.include? server
     }
@@ -53,10 +55,31 @@ class MistClient
   end
 end
 
+options = {distro: 'ubuntu', release: 'trusty'}
+OptionParser.new do |opts|
+  opts.on('-c', '--create', 'Create a container') do |create|
+    options[:action] = 'create'
+  end
+
+  opts.on('-D', '--destroy NAME', 'Destroy a container') do |name|
+    options[:action] = 'destroy'
+    options[:name] = name
+  end
+
+  opts.on('-d', '--distro DISTRO', 'Distribution name') do |distro|
+    options[:distro] = distro
+  end
+
+  opts.on('-r', '--release RELEASE', 'Distribution release') do |release|
+    options[:release] = release
+  end
+end.parse!
+
+abort "You must specify one of -c (--create) or -D (--destroy)" unless options.key? :action
+
 mutex = Mutex.new
 client = MistClient.new(mutex)
 client.add_server('127.0.0.1')
 
-result = client.call(:create, 'ubuntu', 'trusty')
-
+result = client.call(options[:action].to_sym, options)
 Mist.logger.debug "result=#{result}"
