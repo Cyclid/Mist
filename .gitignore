@@ -1,4 +1,6 @@
 *.swp
+.bundle
+vendor
 
 # Under no circumstances should SSH keys be checked in
 id_rsa*

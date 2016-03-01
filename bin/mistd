@@ -1,0 +1,67 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.push File.expand_path('../../lib', __FILE__)
+
+require 'mist'
+require 'msgpack/rpc'
+require 'socket'
+
+class MistHandler
+  def create(distro, release)
+    hostname = Socket.hostname
+    name = 'dunno'
+
+    begin
+      Mist.logger.info "creating container #{name} with #{distro}-#{release}"
+      raise 'derp'
+
+      container = Mist::LXCContainer.new(name, distro, release)
+      ip = container.ips.first
+    rescue StandardError => ex
+      Mist.logger.error "Create request failed: #{ex}"
+      return {status: false, client: hostname, message: "create request failed: #{ex}"}
+    end
+
+    return {status: true, client: hostname, message: "created new container #{name}", ip: ip}
+  end
+
+  def destroy(name)
+    begin
+      raise 'derp'
+
+      container = Mist::LXCContainer.new(name)
+      Mist.logger.info "destroying #{name}"
+      container.destroy
+    rescue StandardError => ex
+      Mist.logger.error "Destroy request failed: #{ex}"
+      return {status: false, message: "destroy request failed: #{ex}"}
+    end
+
+    return {status: true, message: "destroyed container #{name}"}
+  end
+end
+
+class MistServer
+  def initialize
+    @server = MessagePack::RPC::Server.new
+    @server.listen('0.0.0.0', 18800, MistHandler.new)
+  end
+
+  def run
+    @server.run
+  end
+end
+
+Process.deamon(false, false)
+
+begin
+  Mist.logger.info 'Mist server starting'
+
+  server = MistServer.new
+  server.run
+rescue StandardError => ex
+  Mist.logger.error "failed to start Mist server: #{ex}"
+  abort
+end
+
+Mist.logger.info 'Mist server exiting'
+exit 0

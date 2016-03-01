@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby2.0
+$LOAD_PATH.push File.expand_path('../../lib', __FILE__)
+
+require 'mist'
+require 'msgpack/rpc'
+
+class MistClient
+  def initialize(mutex)
+    @mutex = mutex
+
+    @available = []
+    @busy = []
+  end
+
+  def add_server(server)
+    @mutex.synchronize {
+      @available << server
+    }
+  end
+
+  def remove_server(server)
+    @mutex.synchronize {
+      @available.delete server if @available.include? server
+      @busy.delete server if @busy.include? server
+    }
+  end
+
+  def call(method, *args)
+    server = nil
+    # Get the first available client; loop until one becomes available
+    loop do
+      @mutex.synchronize {
+        server = @available.pop unless @available.empty?
+        @busy.push server unless server.nil? 
+      }
+      break if server
+      sleep 1
+    end
+
+    Mist.logger.debug "got server #{server}"
+
+    client = MessagePack::RPC::Client.new(server, 18800)
+    result = client.call(method, args)
+
+    # Put the server back in the available list; if the server was removed
+    # while we were using it, don't put it back.
+    @mutex.syncronize {
+      @available.push server if @busy.include? server
+      @busy.delete server if @busy.include? server
+    }
+
+    return result
+  end
+end
+
+mutex = Mutex.new
+client = MistClient.new(mutex)
+client.add_server('127.0.0.1')
+
+result = client.call(:create, 'ubuntu', 'trusty')
+
+Mist.logger.debug "result=#{result}"
