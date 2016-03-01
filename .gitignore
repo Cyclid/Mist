@@ -2,5 +2,8 @@
 .bundle
 vendor
 
+# Don't commit build artifacts
+*.gem
+
 # Under no circumstances should SSH keys be checked in
 id_rsa*
