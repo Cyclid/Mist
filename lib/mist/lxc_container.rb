@@ -2,7 +2,7 @@ module Mist
   class LXCContainer
     attr_reader :name, :distro, :release, :ips
 
-    def initialize(name, distro, release)
+    def initialize(name, distro = nil, release = nil)
       @name = name
       @distro = distro
       @release = release
