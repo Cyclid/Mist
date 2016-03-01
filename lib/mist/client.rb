@@ -1,4 +1,5 @@
 require 'msgpack/rpc'
+require_relative 'logger'
 
 module Mist
   class Client
