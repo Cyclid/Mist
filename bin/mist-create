@@ -6,15 +6,15 @@ require 'mist'
 
 options = {distro: 'ubuntu', release: 'trusty'}
 OptionParser.new do |opts|
-  opts.on('-n', '--name', 'Container name') do |name|
+  opts.on('-n', '--name NAME', 'Container name') do |name|
     options[:name] = name
   end
 
-  opts.on('-d', '--distro', 'Distribution name') do |distro|
+  opts.on('-d', '--distro DISTRO', 'Distribution name') do |distro|
     options[:distro] = distro
   end
 
-  opts.on('-r', '--release', 'Distribution release') do |release|
+  opts.on('-r', '--release RELEASE', 'Distribution release') do |release|
     options[:release] = release
   end
 end.parse!
