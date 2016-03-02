@@ -94,7 +94,7 @@ Mist.logger = Logger.new(File.join(%w(/ var log mist.log)))
 Process.daemon(false, false)
 
 begin
-  Mist.logger.info 'Mist server starting'
+  Mist.logger.info "Mist server starting with PID #{process.pid}"
 
   server = MistServer.new
   server.run
