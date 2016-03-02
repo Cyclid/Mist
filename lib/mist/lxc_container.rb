@@ -41,11 +41,15 @@ module Mist
         Mist.logger.info "Waiting for network..."
 
         @ips=[]
+        start = Time.now
         loop do
           @ips = container.ip_addresses
+          break unless @ips.empty?
+
           sleep 0.5
 
-          break unless @ips.empty?
+          raise 'timed out waiting for network' \
+            if (Time.now - start) >= 30
         end
       rescue StandardError => ex
         Mist.logger.error "Failed to start container #{@name}: #{ex}"
