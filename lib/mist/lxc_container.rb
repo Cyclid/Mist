@@ -51,6 +51,27 @@ module Mist
           raise 'timed out waiting for network' \
             if (Time.now - start) >= 30
         end
+
+        # Give the container a few more seconds to allow SSH to start
+        socket = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
+        sockaddr = Socket.sockaddr_in(22, @ips.first)
+        start = Time.now
+        loop do
+          begin
+            if socket.connect_nonblock(sockaddr) == 0
+              Mist.logger.info 'SSH started'
+              socket.close
+              break
+            else
+              sleep 0.5
+            end
+
+            raise 'timed out waiting for SSH' \
+              if (Time.now - start) >= 30
+          rescue Errno::ECONNREFUSED, Errno::EWOULDBLOCK, Errno::EINPROGRESS
+            # Ignored
+          end
+        end
       rescue StandardError => ex
         Mist.logger.error "Failed to start container #{@name}: #{ex}"
 
