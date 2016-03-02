@@ -55,6 +55,7 @@ module Mist
         Mist.logger.error "Failed to start container #{@name}: #{ex}"
 
         # Attempt to clean up
+        container.stop if container.running?
         container.destroy if container.defined?
 
         raise
