@@ -20,9 +20,9 @@ end
 require 'mist/pool'
 require 'mist/client'
 
-options = {distro: 'ubuntu', release: 'trusty'}
+options = { distro: 'ubuntu', release: 'trusty' }
 OptionParser.new do |opts|
-  opts.on('-c', '--create', 'Create a container') do |create|
+  opts.on('-c', '--create', 'Create a container') do |_create|
     options[:action] = 'create'
   end
 
@@ -44,7 +44,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-abort "You must specify one of -c (--create) or -D (--destroy)" unless options.key? :action
+abort 'You must specify one of -c (--create) or -D (--destroy)' unless options.key? :action
 
 # Get the server pool that is shared amongst the client threads
 pool = Mist::Pool.get

@@ -21,13 +21,13 @@ module Mist
       # Find the template for this container; if one does not exist on the host,
       # create it.
       template = LXCTemplate.new(distro, release)
-      if not template.exists?
+      unless template.exists?
         Mist.logger.info "Template for #{distro}-#{release} does not exist"
         template.create
       end
 
       # Fast-clone a new container from the template
-      Mist.logger.info "Cloning template..."
+      Mist.logger.info 'Cloning template...'
       container = template.clone(@name)
 
       begin
@@ -38,9 +38,9 @@ module Mist
         container.wait(:running, 30)
 
         # Wait for the network to start
-        Mist.logger.info "Waiting for network..."
+        Mist.logger.info 'Waiting for network...'
 
-        @ips=[]
+        @ips = []
         start = Time.now
         loop do
           @ips = container.ip_addresses

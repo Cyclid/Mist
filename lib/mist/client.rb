@@ -12,7 +12,7 @@ module Mist
       timeout = args[:timeout] || 300
       Mist.logger.debug "got server #{server}"
 
-      client = MessagePack::RPC::Client.new(server, 18800)
+      client = MessagePack::RPC::Client.new(server, 18_800)
       client.timeout = timeout
       result = client.call(method, args)
 

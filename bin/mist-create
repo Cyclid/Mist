@@ -4,7 +4,7 @@ $LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 require 'optparse'
 require 'mist'
 
-options = {distro: 'ubuntu', release: 'trusty'}
+options = { distro: 'ubuntu', release: 'trusty' }
 OptionParser.new do |opts|
   opts.on('-n', '--name NAME', 'Container name') do |name|
     options[:name] = name
@@ -25,7 +25,7 @@ if name.nil?
   filename = File.join(ENV['HOME'], '.mist', 'lxc-sequence')
 
   # Create an empty sequence file if one doesn't exist
-  File.new(filename, 'w') unless File.exists?(filename)
+  File.new(filename, 'w') unless File.exist?(filename)
 
   # Read the last sequence, increment it & write it back again
   sequence_file = File.new(filename, 'r+')

@@ -25,10 +25,10 @@ class MistHandler
       ip = container.ips.first
     rescue StandardError => ex
       Mist.logger.error "Create request failed: #{ex}"
-      return {status: false, server: hostname, message: "create request failed: #{ex}"}
+      return { status: false, server: hostname, message: "create request failed: #{ex}" }
     end
 
-    return {status: true, server: hostname, message: 'created new container', name: name, ip: ip}
+    return { status: true, server: hostname, message: 'created new container', name: name, ip: ip }
   end
 
   def destroy(args)
@@ -42,10 +42,10 @@ class MistHandler
       container.destroy
     rescue StandardError => ex
       Mist.logger.error "Destroy request failed: #{ex}"
-      return {status: false, message: "destroy request failed: #{ex}"}
+      return { status: false, message: "destroy request failed: #{ex}" }
     end
 
-    return {status: true, message: 'destroyed container', name: name}
+    return { status: true, message: 'destroyed container', name: name }
   end
 
   private
@@ -55,7 +55,7 @@ class MistHandler
     filename = File.join(ENV['HOME'], '.mist', 'lxc-sequence')
 
     # Create an empty sequence file if one doesn't exist
-    File.new(filename, 'w') unless File.exists?(filename)
+    File.new(filename, 'w') unless File.exist?(filename)
 
     # Read the last sequence, increment it & write it back again
     sequence_file = File.new(filename, 'r+')
@@ -79,7 +79,7 @@ end
 class MistServer
   def initialize
     @server = MessagePack::RPC::Server.new
-    @server.listen('0.0.0.0', 18800, MistHandler.new)
+    @server.listen('0.0.0.0', 18_800, MistHandler.new)
   end
 
   def run

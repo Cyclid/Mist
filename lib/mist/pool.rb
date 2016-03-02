@@ -30,26 +30,26 @@ module Mist
     end
 
     def add(server)
-      @mutex.synchronize {
+      @mutex.synchronize do
         @available << server
-      }
+      end
     end
 
     def remove(server)
-      @mutex.synchronize {
+      @mutex.synchronize do
         @available.delete server if @available.include? server
         @busy.delete server if @busy.include? server
-      }
+      end
     end
 
     def acquire
       server = nil
       # Get the first available client; loop until one becomes available
       loop do
-        @mutex.synchronize {
+        @mutex.synchronize do
           server = @available.pop unless @available.empty?
-          @busy.push server unless server.nil? 
-        }
+          @busy.push server unless server.nil?
+        end
         break if server
         sleep 1
       end
@@ -60,10 +60,10 @@ module Mist
     def release(server)
       # Put the server back in the available list; if the server was removed
       # while we were using it, don't put it back.
-      @mutex.synchronize {
+      @mutex.synchronize do
         @available.push server if @busy.include? server
         @busy.delete server if @busy.include? server
-      }
+      end
     end
   end
 end
