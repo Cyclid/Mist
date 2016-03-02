@@ -9,9 +9,11 @@ module Mist
 
     def call(method, args = {})
       server = args[:server] || @pool.acquire
+      timeout = args[:timeout] || 300
       Mist.logger.debug "got server #{server}"
 
       client = MessagePack::RPC::Client.new(server, 18800)
+      client.timeout = timeout
       result = client.call(method, args)
 
       @pool.release server
