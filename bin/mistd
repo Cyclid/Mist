@@ -4,9 +4,19 @@ $LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 require 'logger'
 require 'mist/logger'
 require 'msgpack/rpc'
+require 'fog/google'
 require 'socket'
 
 class MistHandler
+  def initialize
+    Mist.logger.debug 'in initialize'
+
+    @api = Fog::Compute.new(provider: 'Google',
+                            google_project: 'cyclid-development',
+                            google_client_email: '119770499865-compute@developer.gserviceaccount.com',
+                            google_json_key_location: '/root/cyclid-development-763b9c090adb.json')
+  end
+
   def create(args)
     Mist.logger.debug "create: args=#{args}"
 
@@ -17,40 +27,59 @@ class MistHandler
     name = args['name'] || create_name
 
     begin
-      return { status: false, message: 'not implemented' }
+      Mist.logger.debug 'creating disk'
+      disk = @api.disks.create(name: name,
+                              size_gb: 10,
+                              zone_name: 'europe-west1-b',
+                              source_image: 'ubuntu-1404-trusty-v20160222')
 
-      Mist.logger.info "creating container #{name} with #{distro}-#{release}"
+      Mist.logger.debug 'waiting for disk...'
+      disk.wait_for { disk.ready? }
 
-      container = nil # Mist::LXCContainer.new(name, distro, release)
-      raise "container with the name #{name} already exists!" if container.exists?
+      Mist.logger.debug 'creating instance'
+      instance = @api.servers.create(name: name,
 
-      container.create
-      ip = container.ips.first
+                                     disks: [disk],
+                                     machine_type: 'f1-micro',
+                                     private_key_path: File.expand_path('~/.ssh/id_rsa_build'),
+                                     public_key_path: File.expand_path('~/.ssh/id_rsa_build.pub'),
+                                     zone_name: 'europe-west1-b',
+                                     user: 'build',
+                                     tags: ['build','build-host'])
+
+      instance.wait_for { instance.sshable? }
+
+      ip = instance.private_ip_address
     rescue StandardError => ex
       Mist.logger.error "Create request failed: #{ex}"
       return { status: false, server: hostname, message: "create request failed: #{ex}" }
     end
 
-    return { status: true, server: hostname, message: 'created new container', name: name, ip: ip }
+    return { status: true, server: hostname, message: 'created new instance', name: name, ip: ip }
   end
 
   def destroy(args)
     Mist.logger.debug "destroy: args=#{args}"
 
     begin
-      return { status: false, message: 'not implemented' }
-
       name = args['name']
-      container = nil # Mist::LXCContainer.new(name)
+
+      instance = @api.servers.get(name)
+      raise "instance #{name} does not exist" unless instance
+
+      disk = @api.disks.get(name)
+      raise "could not find disk for instance #{name}" unless disk
 
       Mist.logger.info "destroying #{name}"
-      container.destroy
+
+      raise 'failed to destroy instance' unless instance.destroy(false)
+      raise 'failed to destroy disk' unless disk.destroy
     rescue StandardError => ex
       Mist.logger.error "Destroy request failed: #{ex}"
       return { status: false, message: "destroy request failed: #{ex}" }
     end
 
-    return { status: true, message: 'destroyed container', name: name }
+    return { status: true, message: 'destroyed instance', name: name }
   end
 
   private
@@ -70,7 +99,7 @@ class MistHandler
     rescue
       sequence = 1
     end
-    name = "mist#{sequence}"
+    name = "buildhost-#{sequence}"
 
     sequence += 1
     sequence_file.rewind
@@ -84,7 +113,7 @@ end
 class MistServer
   def initialize
     @server = MessagePack::RPC::Server.new
-    @server.listen('0.0.0.0', 18_800, MistHandler.new)
+    @server.listen('0.0.0.0', 18800, MistHandler.new)
   end
 
   def run
@@ -92,11 +121,17 @@ class MistServer
   end
 end
 
-# Provide our own file logger
-Mist.logger = Logger.new(File.join(%w(/ var log mist.log)))
+daemonize = false
+if daemonize
+  # Provide our own file logger
+  Mist.logger = Logger.new(File.join(%w(/ var log mist.log)))
 
-# Become a daemon & start processing requests
-Process.daemon(false, false)
+  # Become a daemon & start processing requests
+  Process.daemon(false, false)
+else
+  # Log to stderr
+  Mist.logger = Logger.new(STDERR)
+end
 
 begin
   Mist.logger.info "Mist server starting with PID #{Process.pid}"
