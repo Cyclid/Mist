@@ -1,7 +1,8 @@
 #!/usr/bin/env ruby2.0
 $LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 
-require 'mist'
+require 'logger'
+require 'mist/logger'
 require 'msgpack/rpc'
 require 'socket'
 
@@ -16,9 +17,11 @@ class MistHandler
     name = args['name'] || create_name
 
     begin
+      return { status: false, message: 'not implemented' }
+
       Mist.logger.info "creating container #{name} with #{distro}-#{release}"
 
-      container = Mist::LXCContainer.new(name, distro, release)
+      container = nil # Mist::LXCContainer.new(name, distro, release)
       raise "container with the name #{name} already exists!" if container.exists?
 
       container.create
@@ -35,8 +38,10 @@ class MistHandler
     Mist.logger.debug "destroy: args=#{args}"
 
     begin
+      return { status: false, message: 'not implemented' }
+
       name = args['name']
-      container = Mist::LXCContainer.new(name)
+      container = nil # Mist::LXCContainer.new(name)
 
       Mist.logger.info "destroying #{name}"
       container.destroy
