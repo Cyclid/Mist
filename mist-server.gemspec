@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'mist-server'
-  s.version     = '0.1.1'
+  s.version     = '0.2.0'
   s.license     = 'Apache-2.0'
   s.summary     = 'Mist is not a Cloud'
   s.description = 'A simple LXC based container scheduler'
@@ -9,6 +9,8 @@ Gem::Specification.new do |s|
   s.files       = Dir['bin/*.rb', 'lib/**/*.rb']
   s.bindir      = 'bin'
 
-  s.add_dependency('msgpack-rpc', '~> 0.5')
-  s.add_dependency('ruby-lxc', '~> 1.2')
+  s.add_runtime_dependency('msgpack-rpc', '~> 0.5')
+  s.add_runtime_dependency('ruby-lxc', '~> 1.2')
+  s.add_runtime_dependency('fog-google', '~> 0.1')
+  s.add_runtime_dependency('net-ssh', '~> 3.0')
 end

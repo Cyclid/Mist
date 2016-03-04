@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'mist-client'
-  s.version     = '0.1.1'
+  s.version     = '0.2.0'
   s.license     = 'Apache-2.0'
   s.summary     = 'Mist is not a Cloud'
   s.description = 'A simple LXC based container scheduler'
@@ -9,5 +9,5 @@ Gem::Specification.new do |s|
   s.files       = Dir['bin/mist-client.rb', 'lib/mist/pool.rb', 'lib/mist/client.rb']
   s.bindir      = 'bin'
 
-  s.add_dependency('msgpack-rpc', '~> 0.5')
+  s.add_runtime_dependency('msgpack-rpc', '~> 0.5')
 end
