@@ -7,8 +7,9 @@ require 'msgpack/rpc'
 require 'mist/logger'
 require 'mist/config'
 require 'mist/handlers/gce'
+require 'mist/handlers/lxc'
 
-options = { daemonize: false, config: File.join(%w(/ etc mist server.yml)) }
+options = { daemonize: false, config: File.join(%w(/ etc mist server.yml)), type: nil }
 OptionParser.new do |opts|
   opts.on('-d', '--daemon', 'Run the Mist server as a background daemon') do |_daemon|
     options[:daemonize] = true
@@ -17,7 +18,13 @@ OptionParser.new do |opts|
   opts.on('-c', '--config PATH', 'Path to the configuration file') do |path|
     options[:config] = path
   end
+
+  opts.on('-t', '--type TYPE', 'Type of instances to create ("gce" or "lxc")') do |type|
+    options[:type] = type
+  end
 end.parse!
+
+abort 'You must specify the server type: one of "lxc" or "gce"' unless options[:type]
 
 config = Mist::Config.new(options[:config])
 Mist.logger.debug config.inspect
@@ -37,7 +44,13 @@ end
 begin
   Mist.logger.info "Mist server starting with PID #{Process.pid}"
 
-  server = Mist::GceServer.new(config)
+  if options[:type] == 'gce'
+    server = Mist::GceServer.new(config)
+  elsif options[:type] == 'lxc'
+    server = Mist::LxcServer.new(config)
+  else
+    abort "Unknown server type #{options[:type]}"
+  end
   server.run
 rescue StandardError => ex
   Mist.logger.error "failed to start Mist server: #{ex}"

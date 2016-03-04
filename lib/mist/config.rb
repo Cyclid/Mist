@@ -1,3 +1,5 @@
+require 'yaml'
+
 module Mist
   class Config
     attr_reader :default_distro, :default_release
