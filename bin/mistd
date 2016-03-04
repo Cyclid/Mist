@@ -2,6 +2,8 @@
 $LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 
 require 'logger'
+require 'securerandom'
+require 'optparse'
 require 'mist/logger'
 require 'msgpack/rpc'
 require 'fog/google'
@@ -119,28 +121,9 @@ class MistHandler
   private
 
   def create_name
-    # Create a suitable name
-    filename = File.join(ENV['HOME'], '.mist', 'lxc-sequence')
-
-    # Create an empty sequence file if one doesn't exist
-    File.new(filename, 'w') unless File.exist?(filename)
-
-    # Read the last sequence, increment it & write it back again
-    sequence_file = File.new(filename, 'r+')
-    begin
-      sequence = sequence_file.read.to_i
-      Mist.logger.debug "sequence=#{sequence}"
-    rescue
-      sequence = 1
-    end
-    name = "buildhost-#{sequence}"
-
-    sequence += 1
-    sequence_file.rewind
-    sequence_file.write(sequence)
-    sequence_file.close
-
-    return name
+    # XXX Make the base a configuration option
+    base = 'buildhost'
+    "#{base}-#{SecureRandom.hex(16)}"
   end
 end
 
@@ -155,9 +138,18 @@ class MistServer
   end
 end
 
-# XXX Make this a command line option
-daemonize = false
-if daemonize
+options = { daemonize: false, config: File.join(%w(/ etc mist server)) }
+OptionParser.new do |opts|
+  opts.on('-d', '--daemon', 'Run the Mist server as a background daemon') do |_daemon|
+    options[:daemonize] = true
+  end
+
+  opts.on('-c', '--config PATH', 'Path to the configuration file') do |config|
+    options[:config] = config
+  end
+end
+
+if options[:daemonize]
   # Provide our own file logger
   Mist.logger = Logger.new(File.join(%w(/ var log mist.log)))
 
@@ -168,6 +160,7 @@ else
   Mist.logger = Logger.new(STDERR)
 end
 
+# Start the RPC event loop
 begin
   Mist.logger.info "Mist server starting with PID #{Process.pid}"
 
