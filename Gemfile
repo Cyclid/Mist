@@ -10,7 +10,7 @@ group :gce_server do
 end
 
 group :lxc_server do
-
+  gem 'ruby-lxc'
 end
 
 group :development, :test do
