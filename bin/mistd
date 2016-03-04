@@ -21,37 +21,68 @@ class MistHandler
     distro = args['distro'] || 'ubuntu'
     release = args['release'] || 'trusty'
     name = args['name'] || create_name
-    username = 'ubuntu'
+
+    username = 'build'
+    ssh_pub_key = File.expand_path('~/.ssh/id_rsa_build.pub')
     network = 'builders'
     zone = 'europe-west1-b'
-
-    # XXX Map the distro & release to a source image
+    machine_type = 'f1-micro'
 
     begin
-      Mist.logger.debug 'creating disk'
-      disk = @api.disks.create(name: name,
-                              size_gb: 10,
-                              zone_name: zone,
-                              source_image: 'ubuntu-1404-trusty-v20160222')
+      # Map the distro & release to a source image
+      Mist.logger.debug 'attempting to find source image'
 
-      Mist.logger.debug 'waiting for disk...'
+      source_image = nil
+      disk_size = 0
+
+      @api.images.all.each do |image|
+        next if image.deprecated
+
+        match = image.name.match(/^#{distro}-((\d*)-(.*)-v.*$|(\d*)-v.*$)/)
+        next unless match
+        next unless match[2] == release or match[3] == release
+
+        # Found one
+        Mist.logger.info "found image #{image.name} for #{distro}:#{release}"
+        source_image = image.name
+        disk_size = image.disk_size_gb
+
+        break
+      end
+
+      # If we didn't find a disk, we have to stop now
+      raise "could not find suitable source image for #{distro}:#{release}" \
+        unless source_image
+
+      # Create a disk, create an instance with the disk attached, set the disk
+      # to be auto-deleted when the instance is destroyed
+      Mist.logger.info "creating disk #{name}"
+      disk = @api.disks.create(name: name,
+                              size_gb: disk_size,
+                              zone_name: zone,
+                              source_image: source_image)
+
+      Mist.logger.info 'waiting for disk...'
       disk.wait_for { disk.ready? }
 
-      Mist.logger.debug 'creating instance'
+      Mist.logger.info "creating instance #{name}"
+
+      metadata = {'startup-script' => File.read('/etc/mist/startup-script'),
+                  'mist-user' => 'build',
+                  'mist-key' => File.read(ssh_pub_key)}
+
       instance = @api.servers.create(name: name,
                                      disks: [disk],
-                                     machine_type: 'f1-micro',
-                                     private_key_path: File.expand_path('~/.ssh/id_rsa_build'),
-                                     public_key_path: File.expand_path('~/.ssh/id_rsa_build.pub'),
+                                     machine_type: machine_type,
                                      zone_name: zone,
                                      network: network,
-                                     username: username,
+                                     metadata: metadata,
                                      tags: ['build','build-host'])
 
       device_name = instance.disks[0]['deviceName']
       instance.set_disk_auto_delete(true, device_name)
 
-      instance.wait_for { instance.sshable? }
+      instance.wait_for { instance.ready? }
 
       ip = instance.public_ip_address #private_ip_address
     rescue StandardError => ex
@@ -59,7 +90,11 @@ class MistHandler
       return { status: false, server: hostname, message: "create request failed: #{ex}" }
     end
 
-    return { status: true, server: hostname, message: 'created new instance', name: name, ip: ip, username: username }
+    return { status: true,
+             server: hostname,
+             message: 'created new instance',
+             name: name, ip: ip,
+             username: username }
   end
 
   def destroy(args)
