@@ -9,28 +9,29 @@ require 'socket'
 
 class MistHandler
   def initialize
-    Mist.logger.debug 'in initialize'
-
-    @api = Fog::Compute.new(provider: 'Google',
-                            google_project: 'cyclid-development',
-                            google_client_email: '119770499865-compute@developer.gserviceaccount.com',
-                            google_json_key_location: '/root/cyclid-development-763b9c090adb.json')
+    @api = Fog::Compute.new(provider: 'Google')
   end
 
   def create(args)
     Mist.logger.debug "create: args=#{args}"
 
-    hostname = Socket.gethostname
+    #hostname = Socket.gethostname
+    hostname = '104.155.84.154'
 
     distro = args['distro'] || 'ubuntu'
     release = args['release'] || 'trusty'
     name = args['name'] || create_name
+    username = 'ubuntu'
+    network = 'builders'
+    zone = 'europe-west1-b'
+
+    # XXX Map the distro & release to a source image
 
     begin
       Mist.logger.debug 'creating disk'
       disk = @api.disks.create(name: name,
                               size_gb: 10,
-                              zone_name: 'europe-west1-b',
+                              zone_name: zone,
                               source_image: 'ubuntu-1404-trusty-v20160222')
 
       Mist.logger.debug 'waiting for disk...'
@@ -38,24 +39,27 @@ class MistHandler
 
       Mist.logger.debug 'creating instance'
       instance = @api.servers.create(name: name,
-
                                      disks: [disk],
                                      machine_type: 'f1-micro',
                                      private_key_path: File.expand_path('~/.ssh/id_rsa_build'),
                                      public_key_path: File.expand_path('~/.ssh/id_rsa_build.pub'),
-                                     zone_name: 'europe-west1-b',
-                                     user: 'build',
+                                     zone_name: zone,
+                                     network: network,
+                                     username: username,
                                      tags: ['build','build-host'])
+
+      device_name = instance.disks[0]['deviceName']
+      instance.set_disk_auto_delete(true, device_name)
 
       instance.wait_for { instance.sshable? }
 
-      ip = instance.private_ip_address
+      ip = instance.public_ip_address #private_ip_address
     rescue StandardError => ex
       Mist.logger.error "Create request failed: #{ex}"
       return { status: false, server: hostname, message: "create request failed: #{ex}" }
     end
 
-    return { status: true, server: hostname, message: 'created new instance', name: name, ip: ip }
+    return { status: true, server: hostname, message: 'created new instance', name: name, ip: ip, username: username }
   end
 
   def destroy(args)
@@ -67,13 +71,8 @@ class MistHandler
       instance = @api.servers.get(name)
       raise "instance #{name} does not exist" unless instance
 
-      disk = @api.disks.get(name)
-      raise "could not find disk for instance #{name}" unless disk
-
       Mist.logger.info "destroying #{name}"
-
-      raise 'failed to destroy instance' unless instance.destroy(false)
-      raise 'failed to destroy disk' unless disk.destroy
+      raise 'failed to destroy instance' unless instance.destroy
     rescue StandardError => ex
       Mist.logger.error "Destroy request failed: #{ex}"
       return { status: false, message: "destroy request failed: #{ex}" }
@@ -121,6 +120,7 @@ class MistServer
   end
 end
 
+# XXX Make this a command line option
 daemonize = false
 if daemonize
   # Provide our own file logger
