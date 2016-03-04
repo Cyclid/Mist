@@ -12,8 +12,7 @@ module Mist
     def create(args)
       Mist.logger.debug "create: args=#{args}"
 
-      #hostname = Socket.gethostname
-      hostname = '104.155.84.154'
+      hostname = Socket.gethostname
 
       distro = args['distro'] || @config.default_distro 
       release = args['release'] || @config.default_release
