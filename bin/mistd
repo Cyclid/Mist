@@ -1,102 +1,56 @@
 #!/usr/bin/env ruby2.0
 $LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 
-require 'mist'
+require 'logger'
+require 'optparse'
 require 'msgpack/rpc'
-require 'socket'
+require 'mist/logger'
+require 'mist/config'
+require 'mist/handlers/gce'
+require 'mist/handlers/lxc'
 
-class MistHandler
-  def create(args)
-    Mist.logger.debug "create: args=#{args}"
-
-    hostname = Socket.gethostname
-
-    distro = args['distro'] || 'ubuntu'
-    release = args['release'] || 'trusty'
-    name = args['name'] || create_name
-
-    begin
-      Mist.logger.info "creating container #{name} with #{distro}-#{release}"
-
-      container = Mist::LXCContainer.new(name, distro, release)
-      raise "container with the name #{name} already exists!" if container.exists?
-
-      container.create
-      ip = container.ips.first
-    rescue StandardError => ex
-      Mist.logger.error "Create request failed: #{ex}"
-      return { status: false, server: hostname, message: "create request failed: #{ex}" }
-    end
-
-    return { status: true, server: hostname, message: 'created new container', name: name, ip: ip }
+options = { daemonize: false, config: File.join(%w(/ etc mist server.yml)), type: nil }
+OptionParser.new do |opts|
+  opts.on('-d', '--daemon', 'Run the Mist server as a background daemon') do |_daemon|
+    options[:daemonize] = true
   end
 
-  def destroy(args)
-    Mist.logger.debug "destroy: args=#{args}"
-
-    begin
-      name = args['name']
-      container = Mist::LXCContainer.new(name)
-
-      Mist.logger.info "destroying #{name}"
-      container.destroy
-    rescue StandardError => ex
-      Mist.logger.error "Destroy request failed: #{ex}"
-      return { status: false, message: "destroy request failed: #{ex}" }
-    end
-
-    return { status: true, message: 'destroyed container', name: name }
+  opts.on('-c', '--config PATH', 'Path to the configuration file') do |path|
+    options[:config] = path
   end
 
-  private
-
-  def create_name
-    # Create a suitable name
-    filename = File.join(ENV['HOME'], '.mist', 'lxc-sequence')
-
-    # Create an empty sequence file if one doesn't exist
-    File.new(filename, 'w') unless File.exist?(filename)
-
-    # Read the last sequence, increment it & write it back again
-    sequence_file = File.new(filename, 'r+')
-    begin
-      sequence = sequence_file.read.to_i
-      Mist.logger.debug "sequence=#{sequence}"
-    rescue
-      sequence = 1
-    end
-    name = "mist#{sequence}"
-
-    sequence += 1
-    sequence_file.rewind
-    sequence_file.write(sequence)
-    sequence_file.close
-
-    return name
+  opts.on('-t', '--type TYPE', 'Type of instances to create ("gce" or "lxc")') do |type|
+    options[:type] = type
   end
+end.parse!
+
+abort 'You must specify the server type: one of "lxc" or "gce"' unless options[:type]
+
+config = Mist::Config.new(options[:config])
+Mist.logger.debug config.inspect
+
+if options[:daemonize]
+  # Provide our own file logger
+  Mist.logger = Logger.new(File.join(%w(/ var log mist.log)))
+
+  # Become a daemon & start processing requests
+  Process.daemon(false, false)
+else
+  # Log to stderr
+  Mist.logger = Logger.new(STDERR)
 end
 
-class MistServer
-  def initialize
-    @server = MessagePack::RPC::Server.new
-    @server.listen('0.0.0.0', 18_800, MistHandler.new)
-  end
-
-  def run
-    @server.run
-  end
-end
-
-# Provide our own file logger
-Mist.logger = Logger.new(File.join(%w(/ var log mist.log)))
-
-# Become a daemon & start processing requests
-Process.daemon(false, false)
-
+# Start the RPC event loop
 begin
   Mist.logger.info "Mist server starting with PID #{Process.pid}"
 
-  server = MistServer.new
+  if options[:type] == 'gce'
+    server = Mist::GceServer.new(config)
+  elsif options[:type] == 'lxc'
+    server = Mist::LxcServer.new(config)
+  else
+    abort "Unknown server type #{options[:type]}"
+  end
   server.run
 rescue StandardError => ex
   Mist.logger.error "failed to start Mist server: #{ex}"

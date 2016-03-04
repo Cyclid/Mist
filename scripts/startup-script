@@ -1,0 +1,19 @@
+#!/bin/bash
+MIST_USER=$(curl http://metadata/computeMetadata/v1/instance/attributes/mist-user -H "Metadata-Flavor: Google")
+MIST_KEY=$(curl http://metadata/computeMetadata/v1/instance/attributes/mist-key -H "Metadata-Flavor: Google")
+
+# Create user & add key
+useradd -m -s /bin/bash -G sudo $MIST_USER
+mkdir -p /home/${MIST_USER}/.ssh
+echo "$MIST_KEY" > /home/${MIST_USER}/.ssh/authorized_keys
+
+# Fix up permissions
+chown -R $MIST_USER:$MIST_USER /home/${MIST_USER}/.ssh
+chmod 0700 /home/${MIST_USER}/.ssh
+chmod 0600 /home/${MIST_USER}/.ssh/authorized_keys
+
+# Enable sudo
+echo "${MIST_USER} ALL=NOPASSWD: ALL" >> /etc/sudoers
+
+# Update package cache
+apt-get update
