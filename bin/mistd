@@ -9,145 +9,176 @@ require 'msgpack/rpc'
 require 'fog/google'
 require 'socket'
 
-class MistHandler
-  def initialize
-    @api = Fog::Compute.new(provider: 'Google')
+module Mist
+  class Config
+    attr_reader :default_distro, :default_release
+    attr_reader :username, :ssh_public_key, :ssh_private_key
+    attr_reader :network, :zone, :machine_type, :instance_name, :startup_script
+
+    def initialize(path)
+      begin
+        config = YAML.load(File.read(path))
+
+        @default_distro = config['default_distro'] || 'ubuntu'
+        @default_release = config['default_release'] || 'trusty'
+        @username = config['username'] || 'mist'
+        @ssh_public_key = config['ssh_public_key'] || File.expand_path('~/.ssh/id_rsa.pub')
+        @ssh_private_key = config['ssh_private_key'] || File.expand_path('~/.ssh/id_rsa')
+        @network = config['network'] || 'default'
+        @zone = config['zone'] || 'us-central1-a'
+        @machine_type = config['machine_type'] || 'f1-micro'
+        @instance_name = config['instance_name'] || 'mist'
+        @startup_script = config['startup_script'] || File.join(%w(/ etc mist startup-script))
+      rescue StandardError => ex
+        Mist.logger.error "Failed to load configuration file #{path}: #{ex}"
+        abort 'could not load configuration file'
+      end
+    end
   end
 
-  def create(args)
-    Mist.logger.debug "create: args=#{args}"
+  class GceHandler
+    def initialize(config)
+      @api = Fog::Compute.new(provider: 'Google')
+      @config = config
+    end
 
-    #hostname = Socket.gethostname
-    hostname = '104.155.84.154'
+    def create(args)
+      Mist.logger.debug "create: args=#{args}"
 
-    distro = args['distro'] || 'ubuntu'
-    release = args['release'] || 'trusty'
-    name = args['name'] || create_name
+      #hostname = Socket.gethostname
+      hostname = '104.155.84.154'
 
-    username = 'build'
-    ssh_pub_key = File.expand_path('~/.ssh/id_rsa_build.pub')
-    network = 'builders'
-    zone = 'europe-west1-b'
-    machine_type = 'f1-micro'
+      distro = args['distro'] || @config.default_distro 
+      release = args['release'] || @config.default_release
+      name = args['name'] || create_name
 
-    begin
-      # Map the distro & release to a source image
-      Mist.logger.debug 'attempting to find source image'
+      begin
+        # Map the distro & release to a source image
+        Mist.logger.debug 'attempting to find source image'
 
-      source_image = nil
-      disk_size = 0
+        source_image = nil
+        disk_size = 0
 
-      @api.images.all.each do |image|
-        next if image.deprecated
+        @api.images.all.each do |image|
+          next if image.deprecated
 
-        match = image.name.match(/^#{distro}-((\d*)-(.*)-v.*$|(\d*)-v.*$)/)
-        next unless match
-        next unless match[2] == release or match[3] == release
+          match = image.name.match(/^#{distro}-((\d*)-(.*)-v.*$|(\d*)-v.*$)/)
+          next unless match
+          next unless match[2] == release or match[3] == release
 
-        # Found one
-        Mist.logger.info "found image #{image.name} for #{distro}:#{release}"
-        source_image = image.name
-        disk_size = image.disk_size_gb
+          # Found one
+          Mist.logger.info "found image #{image.name} for #{distro}:#{release}"
+          source_image = image.name
+          disk_size = image.disk_size_gb
 
-        break
+          break
+        end
+
+        # If we didn't find a disk, we have to stop now
+        raise "could not find suitable source image for #{distro}:#{release}" \
+          unless source_image
+
+        # Create a disk, create an instance with the disk attached, set the disk
+        # to be auto-deleted when the instance is destroyed
+        Mist.logger.info "creating disk #{name}"
+        disk = @api.disks.create(name: name,
+                                size_gb: disk_size,
+                                zone_name: @config.zone,
+                                source_image: source_image)
+
+        Mist.logger.info 'waiting for disk...'
+        disk.wait_for { disk.ready? }
+
+        Mist.logger.info "creating instance #{name}"
+
+        metadata = {'startup-script' => File.read(@config.startup_script),
+                    'mist-user' => @config.username,
+                    'mist-key' => File.read(@config.ssh_public_key)}
+
+        instance = @api.servers.create(name: name,
+                                       disks: [disk],
+                                       machine_type: @config.machine_type,
+                                       zone_name: @config.zone,
+                                       network: @config.network,
+                                       public_key_path: @config.ssh_public_key,
+                                       private_key_path: @config.ssh_private_key,
+                                       metadata: metadata,
+                                       tags: ['build','build-host'])
+
+        device_name = instance.disks[0]['deviceName']
+        instance.set_disk_auto_delete(true, device_name)
+
+        instance.wait_for { instance.sshable? }
+
+        ip = instance.public_ip_address #private_ip_address
+
+        # Give the instance a grace period while the startup script runs
+        sleep(5)
+      rescue StandardError => ex
+        Mist.logger.error "Create request failed: #{ex}"
+        return { status: false, server: hostname, message: "create request failed: #{ex}" }
       end
 
-      # If we didn't find a disk, we have to stop now
-      raise "could not find suitable source image for #{distro}:#{release}" \
-        unless source_image
-
-      # Create a disk, create an instance with the disk attached, set the disk
-      # to be auto-deleted when the instance is destroyed
-      Mist.logger.info "creating disk #{name}"
-      disk = @api.disks.create(name: name,
-                              size_gb: disk_size,
-                              zone_name: zone,
-                              source_image: source_image)
-
-      Mist.logger.info 'waiting for disk...'
-      disk.wait_for { disk.ready? }
-
-      Mist.logger.info "creating instance #{name}"
-
-      metadata = {'startup-script' => File.read('/etc/mist/startup-script'),
-                  'mist-user' => 'build',
-                  'mist-key' => File.read(ssh_pub_key)}
-
-      instance = @api.servers.create(name: name,
-                                     disks: [disk],
-                                     machine_type: machine_type,
-                                     zone_name: zone,
-                                     network: network,
-                                     metadata: metadata,
-                                     tags: ['build','build-host'])
-
-      device_name = instance.disks[0]['deviceName']
-      instance.set_disk_auto_delete(true, device_name)
-
-      instance.wait_for { instance.ready? }
-
-      ip = instance.public_ip_address #private_ip_address
-    rescue StandardError => ex
-      Mist.logger.error "Create request failed: #{ex}"
-      return { status: false, server: hostname, message: "create request failed: #{ex}" }
+      return { status: true,
+               server: hostname,
+               message: 'created new instance',
+               name: name,
+               ip: ip,
+               username: @config.username }
     end
 
-    return { status: true,
-             server: hostname,
-             message: 'created new instance',
-             name: name, ip: ip,
-             username: username }
-  end
+    def destroy(args)
+      Mist.logger.debug "destroy: args=#{args}"
 
-  def destroy(args)
-    Mist.logger.debug "destroy: args=#{args}"
+      begin
+        name = args['name']
 
-    begin
-      name = args['name']
+        instance = @api.servers.get(name)
+        raise "instance #{name} does not exist" unless instance
 
-      instance = @api.servers.get(name)
-      raise "instance #{name} does not exist" unless instance
+        Mist.logger.info "destroying #{name}"
+        raise 'failed to destroy instance' unless instance.destroy
+      rescue StandardError => ex
+        Mist.logger.error "Destroy request failed: #{ex}"
+        return { status: false, message: "destroy request failed: #{ex}" }
+      end
 
-      Mist.logger.info "destroying #{name}"
-      raise 'failed to destroy instance' unless instance.destroy
-    rescue StandardError => ex
-      Mist.logger.error "Destroy request failed: #{ex}"
-      return { status: false, message: "destroy request failed: #{ex}" }
+      return { status: true, message: 'destroyed instance', name: name }
     end
 
-    return { status: true, message: 'destroyed instance', name: name }
+    private
+
+    def create_name
+      base = @config.instance_name
+      "#{base}-#{SecureRandom.hex(16)}"
+    end
   end
 
-  private
+  class GceServer
+    def initialize(config)
+      @server = MessagePack::RPC::Server.new
+      @server.listen('0.0.0.0', 18800, GceHandler.new(config))
+    end
 
-  def create_name
-    # XXX Make the base a configuration option
-    base = 'buildhost'
-    "#{base}-#{SecureRandom.hex(16)}"
+    def run
+      @server.run
+    end
   end
 end
 
-class MistServer
-  def initialize
-    @server = MessagePack::RPC::Server.new
-    @server.listen('0.0.0.0', 18800, MistHandler.new)
-  end
-
-  def run
-    @server.run
-  end
-end
-
-options = { daemonize: false, config: File.join(%w(/ etc mist server)) }
+options = { daemonize: false, config: File.join(%w(/ etc mist server.yml)) }
 OptionParser.new do |opts|
   opts.on('-d', '--daemon', 'Run the Mist server as a background daemon') do |_daemon|
     options[:daemonize] = true
   end
 
-  opts.on('-c', '--config PATH', 'Path to the configuration file') do |config|
-    options[:config] = config
+  opts.on('-c', '--config PATH', 'Path to the configuration file') do |path|
+    options[:config] = path
   end
-end
+end.parse!
+
+config = Mist::Config.new(options[:config])
+Mist.logger.debug config.inspect
 
 if options[:daemonize]
   # Provide our own file logger
@@ -164,7 +195,7 @@ end
 begin
   Mist.logger.info "Mist server starting with PID #{Process.pid}"
 
-  server = MistServer.new
+  server = Mist::GceServer.new(config)
   server.run
 rescue StandardError => ex
   Mist.logger.error "failed to start Mist server: #{ex}"
