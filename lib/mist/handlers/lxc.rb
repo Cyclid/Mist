@@ -23,7 +23,7 @@ module Mist
         container = Mist::LXCContainer.new(name, distro, release)
         raise "container with the name #{name} already exists!" if container.exists?
 
-        container.create
+        container.create(@config.startup_script)
         ip = container.ips.first
       rescue StandardError => ex
         Mist.logger.error "Create request failed: #{ex}"
