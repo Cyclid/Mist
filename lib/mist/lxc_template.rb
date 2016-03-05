@@ -19,8 +19,8 @@ module Mist
       Mist.logger.info "Creating #{@template_name}..."
 
       # Create our own user with a known key & strong random password
-      username = 'build' # XXX This should be configurable
-      pubkey = "id_rsa_#{username}.pub" # XXX The path to this key should be configurable
+      username = @config.username
+      pubkey = @config.ssh_public_key
       password = SecureRandom.urlsafe_base64(32)
 
       @template.create(@distro, nil, {}, 0, ['--release', @release,
