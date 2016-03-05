@@ -6,8 +6,18 @@ require 'optparse'
 require 'msgpack/rpc'
 require 'mist/logger'
 require 'mist/config'
-require 'mist/handlers/gce'
-require 'mist/handlers/lxc'
+
+begin
+  require 'mist/handlers/gce'
+rescue LoadError
+  STDERR.puts 'GCE is not available'
+end
+
+begin
+  require 'mist/handlers/lxc'
+rescue LoadError
+  STDERR.puts 'LXC is not available'
+end
 
 options = { daemonize: false, config: File.join(%w(/ etc mist server.yml)), type: nil }
 OptionParser.new do |opts|
