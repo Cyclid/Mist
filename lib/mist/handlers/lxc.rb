@@ -30,7 +30,12 @@ module Mist
         return { status: false, server: hostname, message: "create request failed: #{ex}" }
       end
 
-      return { status: true, server: hostname, message: 'created new container', name: name, ip: ip }
+      return { status: true,
+               server: hostname,
+               message: 'created new container',
+               name: name,
+               ip: ip,
+               username: @config.username }
     end
 
     def destroy(args)

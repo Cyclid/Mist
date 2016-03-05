@@ -1,3 +1,5 @@
+require 'lxc'
+
 module Mist
   class LXCContainer
     attr_reader :name, :distro, :release, :ips

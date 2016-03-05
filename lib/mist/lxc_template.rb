@@ -1,4 +1,5 @@
 require 'securerandom'
+require 'lxc'
 
 module Mist
   class LXCTemplate
