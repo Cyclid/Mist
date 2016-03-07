@@ -1,0 +1,77 @@
+{
+   "name" : "Mist",
+   "environment":
+      {
+        "os": "ubuntu_trusty",
+        "packages": [
+          "ruby2.0",
+          "ruby2.0-dev",
+          "build-essential",
+          "git",
+          "zlib1g-dev"
+        ]
+      },
+   "stages" : [
+      {
+         "name" : "checkout",
+         "steps" : [
+            {
+               "action" : "command",
+               "cmd" : "git clone https://9fdeb8455415c9c9d1a91a73410a7bf91b5b63c2@github.com/Liqwyd/Mist.git"
+            }
+         ]
+      },
+      {
+        "name" : "bundle-install",
+        "steps" : [
+          {
+            "action" : "command", 
+            "cmd" : "sudo gem2.0 install bundler --no-ri --no-doc"
+          },
+          {
+            "action" : "command",
+            "cmd": "bundle install --without lxc gce --path vendor/bundle",
+            "path" : "/home/build/Mist"
+          }
+        ]
+      },
+      {
+        "name" : "lint",
+        "steps" : [
+          {
+            "action" : "command",
+            "cmd" : "bundle exec rake rubocop",
+            "path" : "/home/build/Mist"
+          },
+          {
+            "action" : "command",
+            "cmd" : "bundle exec rake doc",
+            "path" : "/home/build/Mist"
+          }
+        ]
+      }
+   ],
+   "sequence" : [
+      {
+         "stage" : "checkout",
+         "on_success" : "bundle-install",
+         "on_failure" : "failure"
+      },
+      {
+         "stage" : "bundle-install",
+         "on_success" : "lint",
+         "on_failure" : "failure"
+      },
+      {
+        "stage" : "lint",
+        "on_success" : "success",
+        "on_failure" : "failure"
+      },
+      {
+         "stage" : "success"
+      },
+      {
+         "stage" : "failure"
+      }
+   ]
+}
