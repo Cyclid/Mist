@@ -13,15 +13,6 @@
       },
    "stages" : [
       {
-         "name" : "checkout",
-         "steps" : [
-            {
-               "action" : "command",
-               "cmd" : "git clone https://9fdeb8455415c9c9d1a91a73410a7bf91b5b63c2@github.com/Liqwyd/Mist.git"
-            }
-         ]
-      },
-      {
         "name" : "bundle-install",
         "steps" : [
           {
@@ -52,11 +43,6 @@
       }
    ],
    "sequence" : [
-      {
-         "stage" : "checkout",
-         "on_success" : "bundle-install",
-         "on_failure" : "failure"
-      },
       {
          "stage" : "bundle-install",
          "on_success" : "lint",
