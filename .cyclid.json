@@ -22,7 +22,7 @@
           {
             "action" : "command",
             "cmd": "bundle install --without lxc gce --path vendor/bundle",
-            "path" : "/home/build/Mist"
+            "path" : "%{workspace}/Mist"
           }
         ]
       },
@@ -32,12 +32,12 @@
           {
             "action" : "command",
             "cmd" : "bundle exec rake rubocop",
-            "path" : "/home/build/Mist"
+            "path" : "%{workspace}/Mist"
           },
           {
             "action" : "command",
             "cmd" : "bundle exec rake doc",
-            "path" : "/home/build/Mist"
+            "path" : "%{workspace}/Mist"
           }
         ]
       }
