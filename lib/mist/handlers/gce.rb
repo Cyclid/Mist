@@ -66,6 +66,7 @@ module Mist
                                        machine_type: @config.machine_type,
                                        zone_name: @config.zone,
                                        network: @config.network,
+                                       subnet: @config.subnet,
                                        public_key_path: @config.ssh_public_key,
                                        private_key_path: @config.ssh_private_key,
                                        metadata: metadata,
@@ -76,7 +77,8 @@ module Mist
 
         instance.wait_for { instance.sshable? }
 
-        ip = instance.public_ip_address #private_ip_address
+        #ip = instance.public_ip_address
+        ip = instance.private_ip_address
 
         # Give the instance a grace period while the startup script runs
         sleep(5)
