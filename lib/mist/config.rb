@@ -5,6 +5,7 @@ module Mist
     attr_reader :default_distro, :default_release
     attr_reader :username, :ssh_public_key, :ssh_private_key
     attr_reader :network, :subnet, :zone, :machine_type, :instance_name, :startup_script
+    attr_reader :use_public_ip
 
     def initialize(path)
       begin
@@ -21,6 +22,7 @@ module Mist
         @machine_type = config['machine_type'] || 'f1-micro'
         @instance_name = config['instance_name'] || 'mist'
         @startup_script = config['startup_script'] || File.join(%w(/ etc mist startup-script))
+        @use_public_ip = config['use_public_ip'] || true
       rescue StandardError => ex
         Mist.logger.error "Failed to load configuration file #{path}: #{ex}"
         abort 'could not load configuration file'

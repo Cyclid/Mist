@@ -77,8 +77,11 @@ module Mist
 
         instance.wait_for { instance.sshable? }
 
-        #ip = instance.public_ip_address
-        ip = instance.private_ip_address
+        ip = if @config.use_public_ip
+               instance.public_ip_address
+             else
+               instance.private_ip_address
+             end
 
         # Give the instance a grace period while the startup script runs
         sleep(5)
