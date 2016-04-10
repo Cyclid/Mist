@@ -20,9 +20,9 @@ end
 require 'mist/pool'
 require 'mist/client'
 
-options = { distro: 'ubuntu', release: 'trusty' }
+options = { distro: 'ubuntu', release: 'trusty', config: File.join(%w(/ etc mist config)) }
 OptionParser.new do |opts|
-  opts.on('-c', '--create', 'Create a container') do |_create|
+  opts.on('-C', '--create', 'Create a container') do |_create|
     options[:action] = 'create'
   end
 
@@ -31,8 +31,8 @@ OptionParser.new do |opts|
     options[:name] = name
   end
 
-  opts.on('-s', '--server SERVER', 'Hostname of the server') do |server|
-    options[:server] = server
+  opts.on('-c', '--config PATH', 'Path to the configuration file') do |path|
+    options[:config] = path
   end
 
   opts.on('-d', '--distro DISTRO', 'Distribution name') do |distro|
@@ -44,11 +44,12 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-abort 'You must specify one of -c (--create) or -D (--destroy)' unless options.key? :action
+abort 'You must specify one of -C (--create) or -D (--destroy)' unless options.key? :action
+
+config = Mist::Config.new(options[:config])
 
 # Get the server pool that is shared amongst the client threads
-pool = Mist::Pool.get
-pool.add('localhost')
+pool = Mist::Pool.get(config.servers)
 
 # Create a client & do the RPC
 client = Mist::Client.new(pool)

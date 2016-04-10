@@ -19,7 +19,7 @@ rescue LoadError
   STDERR.puts 'LXC is not available'
 end
 
-options = { daemonize: false, config: File.join(%w(/ etc mist server.yml)), type: nil }
+options = { daemonize: false, config: File.join(%w(/ etc mist config)), type: nil }
 OptionParser.new do |opts|
   opts.on('-d', '--daemon', 'Run the Mist server as a background daemon') do |_daemon|
     options[:daemonize] = true
