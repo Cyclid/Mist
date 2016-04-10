@@ -19,7 +19,7 @@ rescue LoadError
   STDERR.puts 'LXC is not available'
 end
 
-options = { daemonize: false, config: File.join(%w(/ etc mist config)), type: nil }
+options = { daemonize: false, config: File.join(%w(/ etc mist config)), type: nil, workers: 5 }
 OptionParser.new do |opts|
   opts.on('-d', '--daemon', 'Run the Mist server as a background daemon') do |_daemon|
     options[:daemonize] = true
@@ -31,6 +31,10 @@ OptionParser.new do |opts|
 
   opts.on('-t', '--type TYPE', 'Type of instances to create ("gce" or "lxc")') do |type|
     options[:type] = type
+  end
+
+  opts.on('-w', '--workers NUM', 'Number of workers to create') do |num|
+    options[:workers] = num
   end
 end.parse!
 
@@ -55,9 +59,13 @@ begin
   Mist.logger.info "Mist server starting with PID #{Process.pid}"
 
   if options[:type] == 'gce'
-    server = Mist::GceServer.new(config)
+    for num in 0..options[:workers]
+      server = Mist::GceServer.new(config, num)
+    end
   elsif options[:type] == 'lxc'
-    server = Mist::LxcServer.new(config)
+    for num in 0..options[:workers]
+      server = Mist::LxcServer.new(config, num)
+    end
   else
     abort "Unknown server type #{options[:type]}"
   end

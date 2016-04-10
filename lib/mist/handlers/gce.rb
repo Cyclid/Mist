@@ -126,9 +126,11 @@ module Mist
   end
 
   class GceServer
-    def initialize(config)
+    def initialize(config, id=0)
+      port = 18800 + id
+
       @server = MessagePack::RPC::Server.new
-      @server.listen('0.0.0.0', 18800, GceHandler.new(config))
+      @server.listen('0.0.0.0', port, GceHandler.new(config))
     end
 
     def run
