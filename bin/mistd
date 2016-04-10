@@ -61,15 +61,16 @@ begin
   if options[:type] == 'gce'
     for num in 0..options[:workers]
       server = Mist::GceServer.new(config, num)
+      server.run
     end
   elsif options[:type] == 'lxc'
     for num in 0..options[:workers]
       server = Mist::LxcServer.new(config, num)
+      server.run
     end
   else
     abort "Unknown server type #{options[:type]}"
   end
-  server.run
 rescue StandardError => ex
   Mist.logger.error "failed to start Mist server: #{ex}"
   abort
