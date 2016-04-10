@@ -20,8 +20,8 @@ module Mist
 
         if server_config
           @default_distro = server_config['default_distro'] || 'ubuntu'
-          @default_release = server)config['default_release'] || 'trusty'
-          @username = server)config['username'] || 'mist'
+          @default_release = server_config['default_release'] || 'trusty'
+          @username = server_config['username'] || 'mist'
           @ssh_public_key = server_config['ssh_public_key'] || File.expand_path('~/.ssh/id_rsa.pub')
           @ssh_private_key = server_config['ssh_private_key'] || File.expand_path('~/.ssh/id_rsa')
           @network = server_config['network'] || 'default'

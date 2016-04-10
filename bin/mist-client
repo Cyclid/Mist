@@ -19,6 +19,7 @@ end
 
 require 'mist/pool'
 require 'mist/client'
+require 'mist/config'
 
 options = { distro: 'ubuntu', release: 'trusty', config: File.join(%w(/ etc mist config)) }
 OptionParser.new do |opts|
