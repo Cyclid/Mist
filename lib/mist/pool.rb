@@ -42,7 +42,7 @@ module Mist
       # Get the first available client; loop until one becomes available
       loop do
         @mutex.synchronize do
-          server = @available.pop unless @available.empty?
+          server = @available.shuffle.pop unless @available.empty?
           @busy.push server unless server.nil?
         end
         break if server
