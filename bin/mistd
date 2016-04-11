@@ -58,18 +58,27 @@ end
 begin
   Mist.logger.info "Mist server starting with PID #{Process.pid}"
 
+  threads = []
   if options[:type] == 'gce'
     for num in 0..options[:workers]
       server = Mist::GceServer.new(config, num)
-      server.run
+      threads << Thread.new do
+        server.run
+      end
     end
   elsif options[:type] == 'lxc'
     for num in 0..options[:workers]
       server = Mist::LxcServer.new(config, num)
-      server.run
+      threads << Thread.new do
+        server.run
+      end
     end
   else
     abort "Unknown server type #{options[:type]}"
+  end
+
+  threads.each do |thr|
+    thr.join
   end
 rescue StandardError => ex
   Mist.logger.error "failed to start Mist server: #{ex}"
