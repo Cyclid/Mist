@@ -1,16 +1,16 @@
 source 'https://rubygems.org'
 
-gem 'msgpack-rpc'
+gemspec name: 'mist-server'
+gemspec name: 'mist-client'
 
 group :gce do
-  gem 'fog-core'
-  gem 'fog-google'
-  gem 'net-ssh'
+  gem 'fog-core', '~> 1.37'
+  gem 'fog-google', '~> 0.1'
   gem 'google-api-client', '< 0.9', '>= 0.6.2'
 end
 
 group :lxc do
-  gem 'ruby-lxc'
+  gem 'ruby-lxc', '~> 1.2'
 end
 
 group :development, :test do
@@ -19,4 +19,5 @@ group :development, :test do
   gem 'rubocop'
   gem 'yard'
   gem 'simplecov'
+  gem 'rubygems-tasks'
 end

@@ -1,3 +1,12 @@
+PATH
+  remote: .
+  specs:
+    mist-client (0.2.0)
+      msgpack-rpc (~> 0.5)
+    mist-server (0.2.0)
+      msgpack-rpc (~> 0.5)
+      net-ssh (~> 3.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -104,6 +113,7 @@ GEM
       unicode-display_width (~> 1.0, >= 1.0.1)
     ruby-lxc (1.2.1)
     ruby-progressbar (1.7.5)
+    rubygems-tasks (0.2.4)
     signet (0.7.2)
       addressable (~> 2.3)
       faraday (~> 0.9)
@@ -124,15 +134,16 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  fog-core
-  fog-google
+  fog-core (~> 1.37)
+  fog-google (~> 0.1)
   google-api-client (>= 0.6.2, < 0.9)
-  msgpack-rpc
-  net-ssh
+  mist-client!
+  mist-server!
   rake
   rspec
   rubocop
-  ruby-lxc
+  ruby-lxc (~> 1.2)
+  rubygems-tasks
   simplecov
   yard
 

@@ -10,7 +10,5 @@ Gem::Specification.new do |s|
   s.bindir      = 'bin'
 
   s.add_runtime_dependency('msgpack-rpc', '~> 0.5')
-  s.add_runtime_dependency('ruby-lxc', '~> 1.2')
-  s.add_runtime_dependency('fog-google', '~> 0.1')
   s.add_runtime_dependency('net-ssh', '~> 3.0')
 end
