@@ -60,14 +60,14 @@ begin
 
   threads = []
   if options[:type] == 'gce'
-    0..options[:workers].each do |num|
+    (0..options[:workers]).each do |num|
       server = Mist::GceServer.new(config, num)
       threads << Thread.new do
         server.run
       end
     end
   elsif options[:type] == 'lxc'
-    0..options[:workers].each do |num|
+    (0..options[:workers]).each do |num|
       server = Mist::LxcServer.new(config, num)
       threads << Thread.new do
         server.run
