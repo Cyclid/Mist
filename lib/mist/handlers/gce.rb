@@ -57,7 +57,9 @@ module Mist
 
         Mist.logger.info "creating instance #{name}"
 
-        metadata = { 'startup-script' => File.read(@config.startup_script),
+        startup_script = File.join(@config.startup_script_path, 'gce', distro)
+
+        metadata = { 'startup-script' => File.read(startup_script),
                      'mist-user' => @config.username,
                      'mist-key' => File.read(@config.ssh_public_key) }
 

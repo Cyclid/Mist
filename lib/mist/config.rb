@@ -5,7 +5,7 @@ module Mist
     # Server config attributes
     attr_reader :default_distro, :default_release
     attr_reader :username, :ssh_public_key, :ssh_private_key
-    attr_reader :network, :subnet, :zone, :machine_type, :instance_name, :startup_script
+    attr_reader :network, :subnet, :zone, :machine_type, :instance_name, :startup_script_path
     attr_reader :use_public_ip
 
     # Client config attributes
@@ -28,8 +28,8 @@ module Mist
         @zone = server_config['zone'] || 'us-central1-a'
         @machine_type = server_config['machine_type'] || 'f1-micro'
         @instance_name = server_config['instance_name'] || 'mist'
-        @startup_script = server_config['startup_script'] ||
-                          File.join(%w(/ etc mist startup-script))
+        @startup_script_path = server_config['startup_scripts'] ||
+                               File.join(%w(/ etc mist startup-scripts))
         @use_public_ip = server_config['use_public_ip'] || true
       end
 
