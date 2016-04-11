@@ -13,7 +13,7 @@ module Mist
 
       hostname = Socket.gethostname
 
-      distro = args['distro'] || @config.default_distro 
+      distro = args['distro'] || @config.default_distro
       release = args['release'] || @config.default_release
       name = args['name'] || create_name
 
@@ -64,8 +64,8 @@ module Mist
   end
 
   class LxcServer
-    def initialize(config, id=0)
-      port = 18800 + id
+    def initialize(config, id = 0)
+      port = 18_800 + id
 
       @server = MessagePack::RPC::Server.new
       @server.listen('0.0.0.0', port, LxcHandler.new(config))

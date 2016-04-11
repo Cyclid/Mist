@@ -14,7 +14,7 @@ module Mist
 
       hostname = Socket.gethostname
 
-      distro = args['distro'] || @config.default_distro 
+      distro = args['distro'] || @config.default_distro
       release = args['release'] || @config.default_release
       name = args['name'] || create_name
 
@@ -48,18 +48,18 @@ module Mist
         # to be auto-deleted when the instance is destroyed
         Mist.logger.info "creating disk #{name}"
         disk = @api.disks.create(name: name,
-                                size_gb: disk_size,
-                                zone_name: @config.zone,
-                                source_image: source_image)
+                                 size_gb: disk_size,
+                                 zone_name: @config.zone,
+                                 source_image: source_image)
 
         Mist.logger.info 'waiting for disk...'
         disk.wait_for { disk.ready? }
 
         Mist.logger.info "creating instance #{name}"
 
-        metadata = {'startup-script' => File.read(@config.startup_script),
-                    'mist-user' => @config.username,
-                    'mist-key' => File.read(@config.ssh_public_key)}
+        metadata = { 'startup-script' => File.read(@config.startup_script),
+                     'mist-user' => @config.username,
+                     'mist-key' => File.read(@config.ssh_public_key) }
 
         instance = @api.servers.create(name: name,
                                        disks: [disk],
@@ -70,7 +70,7 @@ module Mist
                                        public_key_path: @config.ssh_public_key,
                                        private_key_path: @config.ssh_private_key,
                                        metadata: metadata,
-                                       tags: ['build','build-host'])
+                                       tags: ['build', 'build-host'])
 
         device_name = instance.disks[0]['deviceName']
         instance.set_disk_auto_delete(true, device_name)
@@ -126,8 +126,8 @@ module Mist
   end
 
   class GceServer
-    def initialize(config, id=0)
-      port = 18800 + id
+    def initialize(config, id = 0)
+      port = 18_800 + id
 
       @server = MessagePack::RPC::Server.new
       @server.listen('0.0.0.0', port, GceHandler.new(config))

@@ -60,14 +60,14 @@ begin
 
   threads = []
   if options[:type] == 'gce'
-    for num in 0..options[:workers]
+    0..options[:workers].each do |num|
       server = Mist::GceServer.new(config, num)
       threads << Thread.new do
         server.run
       end
     end
   elsif options[:type] == 'lxc'
-    for num in 0..options[:workers]
+    0..options[:workers].each do |num|
       server = Mist::LxcServer.new(config, num)
       threads << Thread.new do
         server.run
@@ -77,9 +77,7 @@ begin
     abort "Unknown server type #{options[:type]}"
   end
 
-  threads.each do |thr|
-    thr.join
-  end
+  threads.each(&:join)
 rescue StandardError => ex
   Mist.logger.error "failed to start Mist server: #{ex}"
   abort
