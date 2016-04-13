@@ -8,6 +8,7 @@ Gem::Specification.new do |s|
   s.email       = 'vanders@liqwyd.com'
   s.files       = Dir['bin/mistd', 'lib/**/*.rb', 'LICENSE.server']
   s.bindir      = 'bin'
+  s.executables << 'mistd'
 
   s.add_runtime_dependency('msgpack-rpc', '~> 0.5')
   s.add_runtime_dependency('net-ssh', '~> 3.0')

@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
                       'lib/mist/config.rb',
                       'LICENSE.client']
   s.bindir      = 'bin'
+  s.executables << 'mist-client'
 
   s.add_runtime_dependency('msgpack-rpc', '~> 0.5')
 end
