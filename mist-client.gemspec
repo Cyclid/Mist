@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.description = 'A simple LXC based container scheduler'
   s.authors     = ['Kristian Van Der Vliet']
   s.email       = 'vanders@liqwyd.com'
-  s.files       = Dir['bin/mist-client.rb',
+  s.files       = Dir['bin/mist-client',
                       'lib/mist/pool.rb',
                       'lib/mist/client.rb',
                       'lib/mist/logger.rb',
