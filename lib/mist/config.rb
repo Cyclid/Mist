@@ -46,7 +46,10 @@ module Mist
         @use_public_ip = server_config['use_public_ip'] || true
       end
 
-      @servers = client_config['servers'] if client_config
+      if client_config
+        @servers = client_config['servers']
+        @ssh_private_key = client_config['ssh_private_key'] || File.expand_path('~/.ssh/id_rsa')
+      end
     rescue StandardError => ex
       Mist.logger.error "Failed to load configuration file #{path}: #{ex}"
       abort 'could not load configuration file'
