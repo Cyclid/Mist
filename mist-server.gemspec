@@ -1,12 +1,12 @@
 Gem::Specification.new do |s|
   s.name        = 'mist-server'
   s.version     = '0.2.0'
-  s.license     = 'GPL-2.0'
+  s.license     = 'Apache-2.0'
   s.summary     = 'Mist is not a Cloud'
   s.description = 'A simple LXC based container scheduler'
   s.authors     = ['Kristian Van Der Vliet']
   s.email       = 'vanders@liqwyd.com'
-  s.files       = Dir['bin/mistd', 'lib/**/*.rb', 'LICENSE.server']
+  s.files       = Dir['bin/mistd', 'lib/**/*.rb', 'LICENSE']
   s.bindir      = 'bin'
   s.executables << 'mistd'
 

@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
                       'lib/mist/client.rb',
                       'lib/mist/logger.rb',
                       'lib/mist/config.rb',
-                      'LICENSE.client']
+                      'LICENSE']
   s.bindir      = 'bin'
   s.executables << 'mist-client'
 
