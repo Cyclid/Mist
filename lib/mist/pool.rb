@@ -1,18 +1,26 @@
+# Copyright 2016 Liqwyd Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
 require 'json'
 
 module Mist
   class Pool
-    def self.get
+    def self.get(servers)
       @@pool ||= nil
       if @@pool.nil?
         @@pool = Pool.new(Mutex.new)
         begin
-          config_file = ENV['MIST_CONFIG'] || File.join(%w(/ etc mist config))
-          config = JSON.parse(File.read(config_file))
-
-          raise 'no nodes defined' unless config.key? 'servers'
-
-          config['servers'].each do |server|
+          servers.each do |server|
             @@pool.add(server)
           end
         rescue StandardError => ex
@@ -47,7 +55,7 @@ module Mist
       # Get the first available client; loop until one becomes available
       loop do
         @mutex.synchronize do
-          server = @available.pop unless @available.empty?
+          server = @available.shuffle.pop unless @available.empty?
           @busy.push server unless server.nil?
         end
         break if server

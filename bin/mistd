@@ -1,4 +1,17 @@
-#!/usr/bin/env ruby2.0
+#!/usr/bin/env ruby
+# Copyright 2016 Liqwyd Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
 $LOAD_PATH.push File.expand_path('../../lib', __FILE__)
 
 require 'logger'
@@ -19,7 +32,7 @@ rescue LoadError
   STDERR.puts 'LXC is not available'
 end
 
-options = { daemonize: false, config: File.join(%w(/ etc mist server.yml)), type: nil }
+options = { daemonize: false, config: File.join(%w(/ etc mist config)), type: nil, workers: 5 }
 OptionParser.new do |opts|
   opts.on('-d', '--daemon', 'Run the Mist server as a background daemon') do |_daemon|
     options[:daemonize] = true
@@ -31,6 +44,10 @@ OptionParser.new do |opts|
 
   opts.on('-t', '--type TYPE', 'Type of instances to create ("gce" or "lxc")') do |type|
     options[:type] = type
+  end
+
+  opts.on('-w', '--workers NUM', 'Number of workers to create') do |num|
+    options[:workers] = num
   end
 end.parse!
 
@@ -54,14 +71,26 @@ end
 begin
   Mist.logger.info "Mist server starting with PID #{Process.pid}"
 
+  threads = []
   if options[:type] == 'gce'
-    server = Mist::GceServer.new(config)
+    (0..options[:workers]).each do |num|
+      server = Mist::GceServer.new(config, num)
+      threads << Thread.new do
+        server.run
+      end
+    end
   elsif options[:type] == 'lxc'
-    server = Mist::LxcServer.new(config)
+    (0..options[:workers]).each do |num|
+      server = Mist::LxcServer.new(config, num)
+      threads << Thread.new do
+        server.run
+      end
+    end
   else
     abort "Unknown server type #{options[:type]}"
   end
-  server.run
+
+  threads.each(&:join)
 rescue StandardError => ex
   Mist.logger.error "failed to start Mist server: #{ex}"
   abort

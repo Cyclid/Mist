@@ -1,3 +1,16 @@
+# Copyright 2016 Liqwyd Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
 require 'socket'
 require 'mist/lxc_container'
 require 'mist/lxc_template'
@@ -13,7 +26,7 @@ module Mist
 
       hostname = Socket.gethostname
 
-      distro = args['distro'] || @config.default_distro 
+      distro = args['distro'] || @config.default_distro
       release = args['release'] || @config.default_release
       name = args['name'] || create_name
 
@@ -23,7 +36,9 @@ module Mist
         container = Mist::LXCContainer.new(name, distro, release)
         raise "container with the name #{name} already exists!" if container.exists?
 
-        container.create(@config.startup_script)
+        startup_script = File.join(@config.startup_script_path, 'lxc', distro)
+
+        container.create(startup_script)
         ip = container.ips.first
       rescue StandardError => ex
         Mist.logger.error "Create request failed: #{ex}"
@@ -64,9 +79,11 @@ module Mist
   end
 
   class LxcServer
-    def initialize(config)
+    def initialize(config, id = 0)
+      port = 18_800 + id
+
       @server = MessagePack::RPC::Server.new
-      @server.listen('0.0.0.0', 18800, LxcHandler.new(config))
+      @server.listen('0.0.0.0', port, LxcHandler.new(config))
     end
 
     def run
