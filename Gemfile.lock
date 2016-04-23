@@ -3,7 +3,7 @@ PATH
   specs:
     mist-client (0.2.0)
       msgpack-rpc (~> 0.5)
-    mist-server (0.2.0)
+    mist-server (0.2.1)
       msgpack-rpc (~> 0.5)
       net-ssh (~> 3.0)
 
