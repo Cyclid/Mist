@@ -34,8 +34,8 @@ module Mist
         @default_distro = server_config['default_distro'] || 'ubuntu'
         @default_release = server_config['default_release'] || 'trusty'
         @username = server_config['username'] || 'mist'
-        @ssh_public_key = server_config['ssh_public_key'] || File.expand_path('~/.ssh/id_rsa.pub')
-        @ssh_private_key = server_config['ssh_private_key'] || File.expand_path('~/.ssh/id_rsa')
+        @ssh_public_key = server_config['ssh_public_key'] || File.join(%w(/ etc mist id_rsa.pub))
+        @ssh_private_key = server_config['ssh_private_key'] || File.join(%w(/ etc mist id_rsa))
         @network = server_config['network'] || 'default'
         @subnet = server_config['subnet'] || nil
         @zone = server_config['zone'] || 'us-central1-a'
@@ -48,7 +48,7 @@ module Mist
 
       if client_config
         @servers = client_config['servers']
-        @ssh_private_key = client_config['ssh_private_key'] || File.expand_path('~/.ssh/id_rsa')
+        @ssh_private_key = server_config['ssh_private_key'] || File.join(%w(/ etc mist id_rsa))
       end
     rescue StandardError => ex
       Mist.logger.error "Failed to load configuration file #{path}: #{ex}"
