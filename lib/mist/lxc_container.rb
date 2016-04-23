@@ -12,6 +12,7 @@
 # the License.
 
 require 'lxc'
+require 'fileutils'
 
 module Mist
   class LXCContainer
