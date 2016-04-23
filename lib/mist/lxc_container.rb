@@ -101,8 +101,8 @@ module Mist
         external_file = File.join(external_path, 'startup')
 
         begin
-          FileUtils.mkdir_p(external_path)
-          FileUtils.cp startup_script, external_file
+          ::FileUtils.mkdir_p(external_path)
+          ::FileUtils.cp startup_script, external_file
         rescue StandardError => ex
           Mist.logger.error "failed to copy startup script: #{ex}"
           raise 'could not copy startup script to container'
