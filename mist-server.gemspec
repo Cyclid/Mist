@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'mist-server'
-  s.version     = '0.2.0'
+  s.version     = '0.2.1'
   s.license     = 'Apache-2.0'
   s.summary     = 'Mist is not a Cloud'
   s.description = 'A simple LXC based container scheduler'
