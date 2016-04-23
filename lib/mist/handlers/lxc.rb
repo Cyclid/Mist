@@ -38,7 +38,7 @@ module Mist
 
         startup_script = File.join(@config.startup_script_path, 'lxc', distro)
 
-        container.create(startup_script)
+        container.create(@config, startup_script)
         ip = container.ips.first
       rescue StandardError => ex
         Mist.logger.error "Create request failed: #{ex}"

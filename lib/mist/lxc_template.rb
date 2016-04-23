@@ -28,12 +28,12 @@ module Mist
       @template.defined?
     end
 
-    def create
+    def create(config)
       Mist.logger.info "Creating #{@template_name}..."
 
       # Create our own user with a known key & strong random password
-      username = @config.username
-      pubkey = @config.ssh_public_key
+      username = config.username
+      pubkey = config.ssh_public_key
       password = SecureRandom.urlsafe_base64(32)
 
       @template.create(@distro, nil, {}, 0, ['--release', @release,

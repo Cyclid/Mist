@@ -30,7 +30,7 @@ module Mist
       @container.defined?
     end
 
-    def create(startup_script)
+    def create(config, startup_script)
       raise "Container #{@name} already exists!" if exists?
 
       # Find the template for this container; if one does not exist on the host,
@@ -38,7 +38,7 @@ module Mist
       template = LXCTemplate.new(distro, release)
       unless template.exists?
         Mist.logger.info "Template for #{distro}-#{release} does not exist"
-        template.create
+        template.create(config)
       end
 
       # Fast-clone a new container from the template
