@@ -48,7 +48,7 @@ module Mist
 
       if client_config
         @servers = client_config['servers']
-        @ssh_private_key = server_config['ssh_private_key'] || File.join(%w(/ etc mist id_rsa))
+        @ssh_private_key = client_config['ssh_private_key'] || File.join(%w(/ etc mist id_rsa))
       end
     rescue StandardError => ex
       Mist.logger.error "Failed to load configuration file #{path}: #{ex}"
