@@ -2,6 +2,9 @@
 .bundle
 vendor
 
+# Ignore local configuration files
+test/*.config
+
 # Don't commit build artifacts
 *.gem
 
