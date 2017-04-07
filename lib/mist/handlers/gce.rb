@@ -43,7 +43,9 @@ module Mist
 
           match = image.name.match(/^#{distro}-((\d*)-(.*)-v.*$|(\d*)-v.*$)/)
           next unless match
-          next unless match[2] == release or match[3] == release
+          next unless match[2] == release or
+                      match[3] == release or
+                      match[4] == release
 
           # Found one
           Mist.logger.info "found image #{image.name} for #{distro}:#{release}"
