@@ -1,9 +1,9 @@
 PATH
   remote: .
   specs:
-    mist-client (0.2.1)
+    mist-client (0.2.2)
       msgpack-rpc (~> 0.5)
-    mist-server (0.2.1)
+    mist-server (0.2.2)
       msgpack-rpc (~> 0.5)
       net-ssh (~> 3.0)
 
@@ -148,4 +148,4 @@ DEPENDENCIES
   yard
 
 BUNDLED WITH
-   1.11.2
+   1.14.3
